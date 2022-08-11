@@ -83,23 +83,22 @@ function run() {
             });
             const status = resp.status;
             core.info(`resp: ${status}, assigned ${assignees} to PR ${pull_number} in ${repo}`);
-            // assign n reviewers randomly from CODEOWNERS
-            core.info("Detecting CODEOWNERS...");
-            const codeowner_raw = fs_1.default.readFileSync("./.github/CODEOWNERS", "utf8");
-            const codeowners = codeowner_raw
-                .trim()
-                .split(" @")
-                .filter(v => v !== user.login) // don't allow PR opener to be reviewer
-                .slice(1); // slice [1..] so we skip any regex at the beginning
-            if (codeowners.length < n) {
-                throw new Error("Error, supplied n is greater than length of codeowners, can't assign reviewers");
+            // assign n reviewers randomly from REVIEWERS
+            core.info("Detecting reviewers...");
+            const reviewer_raw = fs_1.default.readFileSync("./.github/REVIEWERS", "utf8");
+            const reviewers = reviewer_raw
+                .trimEnd()
+                .split(" ")
+                .filter(v => v !== user.login); // don't allow PR opener to be reviewer
+            if (reviewers.length < n) {
+                throw new Error("Error, supplied n is greater than length of reviewers, can't assign reviewers");
             }
             core.info("Found: ");
-            for (const c of codeowners) {
+            for (const c of reviewers) {
                 core.info(c);
             }
             // shuffle list and take first n elemenets
-            const to_review = codeowners
+            const to_review = reviewers
                 .sort(() => 0.5 - Math.random()) // ¯\_(ツ)_/¯
                 .slice(0, n);
             core.info("Assigning the following as reviwers...");
