@@ -49,7 +49,6 @@ async function run(): Promise<void> {
         core.info(
             `resp: ${status}, assigned ${assignees} to PR ${pull_number} in ${repo}`
         );
-
     } catch (error) {
         if (error instanceof Error) core.setFailed(error.message);
     }

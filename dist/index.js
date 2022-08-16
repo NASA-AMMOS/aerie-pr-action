@@ -38,13 +38,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
-const fs_1 = __importDefault(__nccwpck_require__(7147));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -54,8 +50,6 @@ function run() {
             if (pull_request === undefined) {
                 throw new Error("Error, not triggered from PR, aborting...");
             }
-            // parse inputs
-            const n = +core.getInput("numReviewers", { required: true });
             const token = core.getInput("token", { required: true });
             // create auth'd github api client
             const gh = github.getOctokit(token);
@@ -83,34 +77,6 @@ function run() {
             });
             const status = resp.status;
             core.info(`resp: ${status}, assigned ${assignees} to PR ${pull_number} in ${repo}`);
-            // assign n reviewers randomly from REVIEWERS
-            core.info("Detecting reviewers...");
-            const reviewer_raw = fs_1.default.readFileSync("./.github/REVIEWERS", "utf8");
-            const reviewers = reviewer_raw
-                .trimEnd()
-                .split(" ")
-                .filter(v => v !== user.login); // don't allow PR opener to be reviewer
-            if (reviewers.length < n) {
-                throw new Error("Error, supplied n is greater than length of reviewers, can't assign reviewers");
-            }
-            core.info("Found: ");
-            for (const c of reviewers) {
-                core.info(c);
-            }
-            // shuffle list and take first n elemenets
-            const to_review = reviewers
-                .sort(() => 0.5 - Math.random()) // ¯\_(ツ)_/¯
-                .slice(0, n);
-            core.info("Assigning the following as reviwers...");
-            for (const c of to_review) {
-                core.info(c);
-            }
-            gh.rest.pulls.requestReviewers({
-                owner,
-                repo,
-                pull_number,
-                reviewers: to_review
-            });
         }
         catch (error) {
             if (error instanceof Error)
