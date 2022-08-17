@@ -1,6 +1,10 @@
 name: 'build-test'
 on: # rebuild any PRs
   pull_request:
+    types:
+      - opened
+      - ready_for_review
+      - labeled
   pull_request_review:
     types:
       - submitted
