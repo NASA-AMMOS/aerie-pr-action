@@ -91,13 +91,12 @@ function run() {
             for (const s of labels) {
                 core.info(s);
             }
-            const num_reviews_resp = yield gh.rest.pulls
-                .listReviews({
+            const num_reviews_resp = yield gh.rest.pulls.listReviews({
                 owner,
                 repo,
                 pull_number
             });
-            const num_reviews = num_reviews_resp.data.reduce((acc, review) => review.state === "APPROVED" ? acc + 1 : acc, 0);
+            const num_reviews = num_reviews_resp.data.reduce((acc, review) => (review.state === "APPROVED" ? acc + 1 : acc), 0);
             const required_num_reviews = labels.includes("documentation") ? 1 : 2;
             core.info(`Determined ${required_num_reviews} approvals are needed`);
             if (num_reviews < required_num_reviews) {
