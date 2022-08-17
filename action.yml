@@ -3,7 +3,14 @@ description: "Randomly assigns an assignee to new PRs"
 author: "skovati"
 on:
   pull_request:
-    types: ["opened", "ready_for_review"]
+    types:
+      - opened
+      - ready_for_review
+  pull_request_review:
+    types:
+      - submitted
+      - edited
+      - dismissed
 inputs:
   token:
     description: >

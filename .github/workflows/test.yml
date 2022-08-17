@@ -1,6 +1,11 @@
 name: 'build-test'
 on: # rebuild any PRs
   pull_request:
+  pull_request_review:
+    types:
+      - submitted
+      - edited
+      - dismissed
 
 jobs:
   build: # make sure build/ci work properly
