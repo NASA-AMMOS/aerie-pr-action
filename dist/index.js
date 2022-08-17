@@ -41,6 +41,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
+let gh;
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -52,55 +53,26 @@ function run() {
             }
             const token = core.getInput("token", { required: true });
             // create auth'd github api client
-            const gh = github.getOctokit(token);
+            gh = github.getOctokit(token);
             // gather context about PR
             const context = github.context;
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const pull_number = pull_request.number;
+            const param = {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pull_request.number
+            };
             // if this action was triggered by opening a PR
             // then assign the opener as the assignee
             if (context.eventName === "opened") {
-                const pr = yield gh.rest.pulls.get({
-                    owner,
-                    repo,
-                    pull_number
-                });
-                const user = pr.data.user;
-                if (!user) {
-                    throw new Error("Error reading user info");
-                }
-                // assign user who opened PR as default assignee
-                const assignees = [user.login];
-                const assign_resp = yield gh.rest.issues.addAssignees({
-                    owner,
-                    repo,
-                    issue_number: pull_number,
-                    assignees
-                });
-                const status = assign_resp.status;
-                core.info(`resp: ${status}, assigned ${assignees} to PR ${pull_number} in ${repo}`);
+                core.info("Action triggered by PR opening, attempting assignment...");
+                yield assignment(param);
             }
-            const label_resp = yield gh.rest.issues.listLabelsOnIssue({
-                owner,
-                repo,
-                issue_number: pull_number
-            });
-            const labels = label_resp.data.map(label => label.name);
-            core.info("Found the follwing labels:");
-            for (const s of labels) {
-                core.info(s);
+            else {
+                core.info("Not triggered by PR opening, skipping assigning");
             }
-            const num_reviews_resp = yield gh.rest.pulls.listReviews({
-                owner,
-                repo,
-                pull_number
-            });
-            const num_reviews = num_reviews_resp.data.reduce((acc, review) => (review.state === "APPROVED" ? acc + 1 : acc), 0);
-            const required_num_reviews = labels.includes("documentation") ? 1 : 2;
-            core.info(`Determined ${required_num_reviews} approvals are needed`);
-            if (num_reviews < required_num_reviews) {
-                throw new Error(`Need ${required_num_reviews} approvals, only have ${num_reviews}`);
+            const labels = yield detect_labels(param);
+            if (!sufficient_approvals(param, labels)) {
+                throw new Error("Insufficient approvals, blocking merge...");
             }
             else {
                 core.info("Sufficient approvals, allowing merge...");
@@ -110,6 +82,57 @@ function run() {
             if (error instanceof Error)
                 core.setFailed(error.message);
         }
+    });
+}
+function assignment(param) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const pr = yield gh.rest.pulls.get({
+            owner: param.owner,
+            repo: param.repo,
+            pull_number: param.pull_number
+        });
+        const user = pr.data.user;
+        if (!user) {
+            throw new Error("Error reading user info");
+        }
+        // assign user who opened PR as default assignee
+        const assignees = [user.login];
+        const assign_resp = yield gh.rest.issues.addAssignees({
+            owner: param.owner,
+            repo: param.repo,
+            issue_number: param.pull_number,
+            assignees
+        });
+        core.info(`resp: ${assign_resp.status}, assigned ${assignees} to PR ${param.pull_number} in ${param.repo}`);
+    });
+}
+function detect_labels(param) {
+    return __awaiter(this, void 0, void 0, function* () {
+        // detect labels
+        const label_resp = yield gh.rest.issues.listLabelsOnIssue({
+            owner: param.owner,
+            repo: param.repo,
+            issue_number: param.pull_number
+        });
+        const labels = label_resp.data.map(label => label.name);
+        core.info("Found the following labels:");
+        for (const s of labels) {
+            core.info(s);
+        }
+        return labels;
+    });
+}
+function sufficient_approvals(param, labels) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const num_reviews_resp = yield gh.rest.pulls.listReviews(param);
+        const num_reviews = num_reviews_resp.data.reduce((acc, review) => (review.state === "APPROVED" ? acc + 1 : acc), 0);
+        const required_num_reviews = labels.includes("documentation") ? 1 : 2;
+        core.info(`Determined ${required_num_reviews} approvals are needed`);
+        const sufficient = num_reviews < required_num_reviews;
+        if (!sufficient) {
+            core.error(`Need ${required_num_reviews} approvals, only have ${num_reviews}`);
+        }
+        return sufficient;
     });
 }
 run();
