@@ -1,13 +1,16 @@
-name: "Pull Request Assignee"
-description: "Randomly assigns an assignee to new PRs"
+name: "Pull Request Logician"
+description: ""
 author: "skovati"
 on:
   pull_request:
     types:
       - opened
+      - reopened
+      - edited
       - ready_for_review
       - labeled
       - unlabeled
+      - synchronize
   pull_request_review:
     types:
       - submitted

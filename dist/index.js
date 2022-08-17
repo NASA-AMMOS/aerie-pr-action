@@ -128,7 +128,7 @@ function sufficient_approvals(param, labels) {
         const num_reviews = num_reviews_resp.data.reduce((acc, review) => (review.state === "APPROVED" ? acc + 1 : acc), 0);
         const required_num_reviews = labels.includes("documentation") ? 1 : 2;
         core.info(`Determined ${required_num_reviews} approvals are needed`);
-        const sufficient = num_reviews < required_num_reviews;
+        const sufficient = num_reviews >= required_num_reviews;
         if (!sufficient) {
             core.error(`Need ${required_num_reviews} approvals, only have ${num_reviews}`);
         }
