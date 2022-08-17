@@ -1,21 +1,21 @@
 name: "test"
 on:
-  - pull_request:
-      branches:
-      - main
-      types:
-        - opened
-        - reopened
-        - edited
-        - ready_for_review
-        - labeled
-        - unlabeled
-        - synchronize
-  - pull_request_review:
-      types:
-        - submitted
-        - edited
-        - dismissed
+  pull_request:
+    branches:
+    - main
+    types:
+      - opened
+      - reopened
+      - edited
+      - ready_for_review
+      - labeled
+      - unlabeled
+      - synchronize
+  pull_request_review:
+    types:
+      - submitted
+      - edited
+      - dismissed
 
 jobs:
   test:
