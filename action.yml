@@ -11,10 +11,6 @@ inputs:
       if none is passed."
     required: false
     default: ${{ github.token }}
-  numReviewers:
-    description: "number of assignees from the list that will get assigned to this PR"
-    required: false
-    default: 1
 runs:
   using: "node16"
   main: "dist/index.js"
