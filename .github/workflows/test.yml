@@ -3,8 +3,10 @@ on: # rebuild any PRs
   pull_request:
     types:
       - opened
+      - edited
       - ready_for_review
       - labeled
+      - unlabeled
   pull_request_review:
     types:
       - submitted
