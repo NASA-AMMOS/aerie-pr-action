@@ -49,7 +49,9 @@ async function run(): Promise<void> {
 
         const labels = await detect_labels(param);
 
-        if (!sufficient_approvals(param, labels)) {
+        const sufficient = await sufficient_approvals(param, labels);
+
+        if (!sufficient) {
             throw new Error("Insufficient approvals, blocking merge...");
         } else {
             core.info("Sufficient approvals, allowing merge...");

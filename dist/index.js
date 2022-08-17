@@ -71,7 +71,8 @@ function run() {
                 core.info("Not triggered by PR opening, skipping assigning");
             }
             const labels = yield detect_labels(param);
-            if (!sufficient_approvals(param, labels)) {
+            const sufficient = yield sufficient_approvals(param, labels);
+            if (!sufficient) {
                 throw new Error("Insufficient approvals, blocking merge...");
             }
             else {
