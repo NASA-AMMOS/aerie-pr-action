@@ -58,34 +58,53 @@ function run() {
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const pull_number = pull_request.number;
-            const pr = yield gh.rest.pulls.get({
+            // if this action was triggered by opening a PR
+            // then assign the opener as the assignee
+            if (context.eventName === "opened") {
+                const pr = yield gh.rest.pulls.get({
+                    owner,
+                    repo,
+                    pull_number
+                });
+                const user = pr.data.user;
+                if (!user) {
+                    throw new Error("Error reading user info");
+                }
+                // assign user who opened PR as default assignee
+                const assignees = [user.login];
+                const assign_resp = yield gh.rest.issues.addAssignees({
+                    owner,
+                    repo,
+                    issue_number: pull_number,
+                    assignees
+                });
+                const status = assign_resp.status;
+                core.info(`resp: ${status}, assigned ${assignees} to PR ${pull_number} in ${repo}`);
+            }
+            const label_resp = yield gh.rest.issues.listLabelsOnIssue({
+                owner,
+                repo,
+                issue_number: pull_number
+            });
+            const labels = label_resp.data.map(label => label.name);
+            core.info("Found the follwing labels:");
+            for (const s of labels) {
+                core.info(s);
+            }
+            const num_reviews_resp = yield gh.rest.pulls
+                .listReviews({
                 owner,
                 repo,
                 pull_number
             });
-            const user = pr.data.user;
-            if (!user) {
-                throw new Error("Error reading user info");
+            const num_reviews = num_reviews_resp.data.reduce((acc, review) => review.state === "APPROVED" ? acc + 1 : acc, 0);
+            const required_num_reviews = labels.includes("documentation") ? 1 : 2;
+            core.info(`Determined ${required_num_reviews} approvals are needed`);
+            if (num_reviews < required_num_reviews) {
+                throw new Error(`Need ${required_num_reviews} approvals, only have ${num_reviews}`);
             }
-            // assign user who opened PR as default assignee
-            const assignees = [user.login];
-            const assign_resp = yield gh.rest.issues.addAssignees({
-                owner,
-                repo,
-                issue_number: pull_number,
-                assignees
-            });
-            const status = assign_resp.status;
-            core.info(`resp: ${status}, assigned ${assignees} to PR ${pull_number} in ${repo}`);
-            const label_resp = yield gh.rest.issues.listLabelsOnIssue({
-                owner,
-                repo,
-                issue_number: pull_number,
-            });
-            const labels = label_resp.data.map((label) => label.name);
-            core.info("Found the follwing labels:");
-            for (const s of labels) {
-                core.info(s);
+            else {
+                core.info("Sufficient approvals, allowing merge...");
             }
         }
         catch (error) {
