@@ -64,6 +64,25 @@ async function run(): Promise<void> {
         for (const s of labels) {
             core.info(s);
         }
+
+        const num_reviews = await gh.rest
+        .pulls
+        .listReviews({
+            owner,
+            repo,
+            pull_number
+        })
+        .then(({ data: reviews }) => {
+            return reviews.reduce(
+                (acc, review) => (review.state === 'APPROVED' ? acc + 1 : acc), 0
+            )
+        });
+
+        const required_num_reviews = labels.includes("documentation") ? 1 : 2;
+        if (num_reviews < required_num_reviews) {
+            throw new Error(`Need ${required_num_reviews} reviews, only have ${num_reviews}`);
+        }
+
     } catch (error) {
         if (error instanceof Error) core.setFailed(error.message);
     }
