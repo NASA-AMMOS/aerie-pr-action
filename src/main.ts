@@ -8,7 +8,9 @@ async function run(): Promise<void> {
         // only run when triggered by PR
         const pull_request = github.context.payload.pull_request;
         if (pull_request?.number === undefined) {
-            throw new Error("Error, not triggered from PR, can't find PR ID, aborting...");
+            throw new Error(
+                "Error, not triggered from PR, can't find PR ID, aborting..."
+            );
         }
 
         const token: string = core.getInput("token", { required: true });
@@ -53,16 +55,15 @@ async function run(): Promise<void> {
         const label_resp = await gh.rest.issues.listLabelsOnIssue({
             owner,
             repo,
-            issue_number: pull_number,
+            issue_number: pull_number
         });
 
-        const labels = label_resp.data.map( ( label ) => label.name);
+        const labels = label_resp.data.map(label => label.name);
 
         core.info("Found the follwing labels:");
         for (const s of labels) {
             core.info(s);
         }
-
     } catch (error) {
         if (error instanceof Error) core.setFailed(error.message);
     }

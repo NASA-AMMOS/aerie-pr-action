@@ -47,8 +47,8 @@ function run() {
             core.info("Starting PR action...");
             // only run when triggered by PR
             const pull_request = github.context.payload.pull_request;
-            if (pull_request === undefined) {
-                throw new Error("Error, not triggered from PR, aborting...");
+            if ((pull_request === null || pull_request === void 0 ? void 0 : pull_request.number) === undefined) {
+                throw new Error("Error, not triggered from PR, can't find PR ID, aborting...");
             }
             const token = core.getInput("token", { required: true });
             // create auth'd github api client
@@ -69,14 +69,24 @@ function run() {
             }
             // assign user who opened PR as default assignee
             const assignees = [user.login];
-            const resp = yield gh.rest.issues.addAssignees({
+            const assign_resp = yield gh.rest.issues.addAssignees({
                 owner,
                 repo,
                 issue_number: pull_number,
                 assignees
             });
-            const status = resp.status;
+            const status = assign_resp.status;
             core.info(`resp: ${status}, assigned ${assignees} to PR ${pull_number} in ${repo}`);
+            const label_resp = yield gh.rest.issues.listLabelsOnIssue({
+                owner,
+                repo,
+                issue_number: pull_number,
+            });
+            const labels = label_resp.data.map((label) => label.name);
+            core.info("Found the follwing labels:");
+            for (const s of labels) {
+                core.info(s);
+            }
         }
         catch (error) {
             if (error instanceof Error)
