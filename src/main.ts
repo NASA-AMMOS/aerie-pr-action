@@ -42,7 +42,7 @@ async function run(): Promise<void> {
         // then assign the opener as the assignee
         if (!triggers.includes(context.eventName)) {
             core.info(
-                "Action triggered by PR opening, attempting assignment..."
+                `Action triggered by ${context.eventName}, attempting assignment...`
             );
             await assignment(param);
             return;
@@ -50,7 +50,9 @@ async function run(): Promise<void> {
 
         // otherwise, we were triggered by a event that mutates labels and or approvals,
         // so we need to recalculate
-        core.info("Not triggered by PR opening, handling labels and approvals");
+        core.info(
+            `Triggered by ${context.eventName}, handling labels and approvals`
+        );
 
         const labels = await detect_labels(param);
 

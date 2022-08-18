@@ -65,13 +65,13 @@ function run() {
             // if this action was triggered by opening a PR
             // then assign the opener as the assignee
             if (!triggers.includes(context.eventName)) {
-                core.info("Action triggered by PR opening, attempting assignment...");
+                core.info(`Action triggered by ${context.eventName}, attempting assignment...`);
                 yield assignment(param);
                 return;
             }
             // otherwise, we were triggered by a event that mutates labels and or approvals,
             // so we need to recalculate
-            core.info("Not triggered by PR opening, handling labels and approvals");
+            core.info(`Triggered by ${context.eventName}, handling labels and approvals`);
             const labels = yield detect_labels(param);
             const sufficient = yield sufficient_approvals(param, labels);
             if (!sufficient) {
