@@ -41,6 +41,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
+const triggers = [
+    "labeled",
+    "unlabeled",
+    "submitted",
+    "edited",
+    "dismissed"
+];
 let gh;
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -63,13 +70,14 @@ function run() {
             };
             // if this action was triggered by opening a PR
             // then assign the opener as the assignee
-            if (context.eventName === "opened") {
+            if (!triggers.includes(context.eventName)) {
                 core.info("Action triggered by PR opening, attempting assignment...");
                 yield assignment(param);
+                return;
             }
-            else {
-                core.info("Not triggered by PR opening, skipping assigning");
-            }
+            // otherwise, we were triggered by a event that mutates labels and or approvals,
+            // so we need to recalculate
+            core.info("Not triggered by PR opening, handling labels and approvals");
             const labels = yield detect_labels(param);
             const sufficient = yield sufficient_approvals(param, labels);
             if (!sufficient) {

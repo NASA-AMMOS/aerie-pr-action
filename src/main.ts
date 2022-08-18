@@ -8,6 +8,8 @@ type Param = {
     pull_number: number;
 };
 
+const triggers = ["labeled", "unlabeled", "submitted", "edited", "dismissed"];
+
 let gh: InstanceType<typeof GitHub>;
 
 async function run(): Promise<void> {
@@ -38,14 +40,17 @@ async function run(): Promise<void> {
 
         // if this action was triggered by opening a PR
         // then assign the opener as the assignee
-        if (context.eventName === "opened") {
+        if (!triggers.includes(context.eventName)) {
             core.info(
                 "Action triggered by PR opening, attempting assignment..."
             );
             await assignment(param);
-        } else {
-            core.info("Not triggered by PR opening, skipping assigning");
+            return;
         }
+
+        // otherwise, we were triggered by a event that mutates labels and or approvals,
+        // so we need to recalculate
+        core.info("Not triggered by PR opening, handling labels and approvals");
 
         const labels = await detect_labels(param);
 
