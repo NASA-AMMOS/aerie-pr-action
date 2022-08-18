@@ -44,6 +44,7 @@ const github = __importStar(__nccwpck_require__(5438));
 const triggers = ["labeled", "unlabeled", "submitted", "edited", "dismissed"];
 let gh;
 function run() {
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         try {
             core.info("Starting PR action...");
@@ -62,16 +63,17 @@ function run() {
                 repo: context.repo.repo,
                 pull_number: pull_request.number
             };
+            const event_type = (_a = context.payload.action) !== null && _a !== void 0 ? _a : "N/A";
             // if this action was triggered by opening a PR
             // then assign the opener as the assignee
-            if (!triggers.includes(context.eventName)) {
-                core.info(`Action triggered by ${context.eventName} - ${context.action}, attempting assignment...`);
+            if (!triggers.includes(event_type)) {
+                core.info(`Action triggered by ${context.eventName}: ${event_type}, attempting assignment...`);
                 yield assignment(param);
                 return;
             }
             // otherwise, we were triggered by a event that mutates labels and or approvals,
             // so we need to recalculate
-            core.info(`Triggered by ${context.eventName}, handling labels and approvals`);
+            core.info(`Triggered by ${context.eventName}: ${event_type}, handling labels and approvals`);
             const labels = yield detect_labels(param);
             const sufficient = yield sufficient_approvals(param, labels);
             if (!sufficient) {

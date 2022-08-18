@@ -38,11 +38,13 @@ async function run(): Promise<void> {
             pull_number: pull_request.number
         };
 
+        const event_type = context.payload.action ?? "N/A";
+
         // if this action was triggered by opening a PR
         // then assign the opener as the assignee
-        if (!triggers.includes(context.eventName)) {
+        if (!triggers.includes(event_type)) {
             core.info(
-                `Action triggered by ${context.eventName} - ${context.action}, attempting assignment...`
+                `Action triggered by ${context.eventName}: ${event_type}, attempting assignment...`
             );
             await assignment(param);
             return;
@@ -51,7 +53,7 @@ async function run(): Promise<void> {
         // otherwise, we were triggered by a event that mutates labels and or approvals,
         // so we need to recalculate
         core.info(
-            `Triggered by ${context.eventName}, handling labels and approvals`
+            `Triggered by ${context.eventName}: ${event_type}, handling labels and approvals`
         );
 
         const labels = await detect_labels(param);
