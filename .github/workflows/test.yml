@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: ./
   sufficiency-check:
-    if: github.event.pull_request_review
+    if: github.event_name == 'pull_request_review'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
