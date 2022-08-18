@@ -8,7 +8,14 @@ type Param = {
     pull_number: number;
 };
 
-const triggers = ["labeled", "unlabeled", "submitted", "edited", "dismissed"];
+const triggers = [
+    "labeled",
+    "unlabeled",
+    "synchronize",
+    "submitted",
+    "edited",
+    "dismissed"
+];
 
 let gh: InstanceType<typeof GitHub>;
 
