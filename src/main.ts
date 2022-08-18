@@ -42,7 +42,7 @@ async function run(): Promise<void> {
         // then assign the opener as the assignee
         if (!triggers.includes(context.eventName)) {
             core.info(
-                `Action triggered by ${context.eventName}, attempting assignment...`
+                `Action triggered by ${context.eventName} - ${context.action}, attempting assignment...`
             );
             await assignment(param);
             return;

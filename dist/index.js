@@ -65,7 +65,7 @@ function run() {
             // if this action was triggered by opening a PR
             // then assign the opener as the assignee
             if (!triggers.includes(context.eventName)) {
-                core.info(`Action triggered by ${context.eventName}, attempting assignment...`);
+                core.info(`Action triggered by ${context.eventName} - ${context.action}, attempting assignment...`);
                 yield assignment(param);
                 return;
             }
