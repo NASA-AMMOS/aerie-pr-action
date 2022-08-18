@@ -2,15 +2,9 @@ name: "test"
 on:
   pull_request:
     branches:
-    - main
+      - main
     types:
       - opened
-      - reopened
-      - edited
-      - ready_for_review
-      - labeled
-      - unlabeled
-      - synchronize
   pull_request_review:
     types:
       - submitted
@@ -18,7 +12,14 @@ on:
       - dismissed
 
 jobs:
-  test:
+  assign-opener:
+    if: github.event.action == "opened"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./
+  sufficiency-check:
+    if: github.event.pull_request_review
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
