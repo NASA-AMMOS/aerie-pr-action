@@ -1,4 +1,4 @@
-name: "Assign Opener as Assignee"
+name: "Opener Assignee"
 on:
   pull_request:
     branches:

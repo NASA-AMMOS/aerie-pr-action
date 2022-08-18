@@ -1,4 +1,4 @@
-name: "sufficiency-check"
+name: "Sufficient Approvals"
 on:
   pull_request_review:
     types:
