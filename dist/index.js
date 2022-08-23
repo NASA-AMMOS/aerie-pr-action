@@ -38,85 +38,94 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
-const fs_1 = __importDefault(__nccwpck_require__(7147));
+let gh;
 function run() {
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         try {
             core.info("Starting PR action...");
             // only run when triggered by PR
             const pull_request = github.context.payload.pull_request;
-            if (pull_request === undefined) {
-                throw new Error("Error, not triggered from PR, aborting...");
+            if ((pull_request === null || pull_request === void 0 ? void 0 : pull_request.number) === undefined) {
+                throw new Error("Error, not triggered from PR, can't find PR ID, aborting...");
             }
-            // parse inputs
-            const n = +core.getInput("numReviewers", { required: true });
             const token = core.getInput("token", { required: true });
             // create auth'd github api client
-            const gh = github.getOctokit(token);
+            gh = github.getOctokit(token);
             // gather context about PR
             const context = github.context;
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const pull_number = pull_request.number;
-            const pr = yield gh.rest.pulls.get({
-                owner,
-                repo,
-                pull_number
-            });
-            const user = pr.data.user;
-            if (!user) {
-                throw new Error("Error reading user info");
-            }
-            // assign user who opened PR as default assignee
-            const assignees = [user.login];
-            const resp = yield gh.rest.issues.addAssignees({
-                owner,
-                repo,
-                issue_number: pull_number,
-                assignees
-            });
-            const status = resp.status;
-            core.info(`resp: ${status}, assigned ${assignees} to PR ${pull_number} in ${repo}`);
-            // assign n reviewers randomly from CODEOWNERS
-            core.info("Detecting CODEOWNERS...");
-            const codeowner_raw = fs_1.default.readFileSync("./.github/CODEOWNERS", "utf8");
-            const codeowners = codeowner_raw
-                .trim()
-                .split(" @")
-                .filter(v => v !== user.login) // don't allow PR opener to be reviewer
-                .slice(1); // slice [1..] so we skip any regex at the beginning
-            if (codeowners.length < n) {
-                throw new Error("Error, supplied n is greater than length of codeowners, can't assign reviewers");
-            }
-            core.info("Found: ");
-            for (const c of codeowners) {
-                core.info(c);
-            }
-            // shuffle list and take first n elemenets
-            const to_review = codeowners
-                .sort(() => 0.5 - Math.random()) // ¯\_(ツ)_/¯
-                .slice(0, n);
-            core.info("Assigning the following as reviwers...");
-            for (const c of to_review) {
-                core.info(c);
-            }
-            gh.rest.pulls.requestReviewers({
-                owner,
-                repo,
-                pull_number,
-                reviewers: to_review
-            });
+            const param = {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pull_request.number
+            };
+            const event_type = (_a = context.payload.action) !== null && _a !== void 0 ? _a : "NO EVENT TYPE";
+            core.info(`Triggered by ${context.eventName}: ${event_type}`);
+            yield assignment(param);
+            const labels = yield detect_labels(param);
+            yield conditional_approve(param, labels);
         }
         catch (error) {
             if (error instanceof Error)
                 core.setFailed(error.message);
         }
+    });
+}
+function assignment(param) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const pr = yield gh.rest.pulls.get({
+            owner: param.owner,
+            repo: param.repo,
+            pull_number: param.pull_number
+        });
+        const user = pr.data.user;
+        if (!user) {
+            throw new Error("Error reading user info");
+        }
+        // assign user who opened PR as default assignee
+        const assignees = [user.login];
+        const assign_resp = yield gh.rest.issues.addAssignees({
+            owner: param.owner,
+            repo: param.repo,
+            issue_number: param.pull_number,
+            assignees
+        });
+        core.info(`resp: ${assign_resp.status}, assigned ${assignees} to PR ${param.pull_number} in ${param.repo}`);
+    });
+}
+function detect_labels(param) {
+    return __awaiter(this, void 0, void 0, function* () {
+        // detect labels
+        const label_resp = yield gh.rest.issues.listLabelsOnIssue({
+            owner: param.owner,
+            repo: param.repo,
+            issue_number: param.pull_number
+        });
+        const labels = label_resp.data.map(label => label.name);
+        core.info("Found the following labels:");
+        for (const s of labels) {
+            core.info(s);
+        }
+        return labels;
+    });
+}
+function conditional_approve(param, labels) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const num_reviews_resp = yield gh.rest.pulls.listReviews(param);
+        const num_approvals = num_reviews_resp.data.reduce((acc, review) => (review.state === "APPROVED" ? acc + 1 : acc), 0);
+        if (num_approvals >= 2) {
+            core.info("Sufficient approvals detected, not approving...");
+            return false;
+        }
+        const labels_needing_approval = labels.filter((l) => l === "documentation" || l === "hotfix");
+        if (labels_needing_approval.length > 0) {
+            core.info("Approving PR...");
+            gh.rest.pulls.createReview(Object.assign(Object.assign({}, param), { event: "APPROVE", body: `Automatically approved due to detection of the following labels: ${labels_needing_approval}` }));
+        }
+        return true;
     });
 }
 run();

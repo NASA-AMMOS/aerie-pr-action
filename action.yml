@@ -1,9 +1,6 @@
-name: "Pull Request Assignee"
-description: "Randomly assigns an assignee to new PRs"
+name: "Pull Request Logician"
+description: ""
 author: "skovati"
-on:
-  pull_request:
-    types: ["opened", "ready_for_review"]
 inputs:
   token:
     description: >
@@ -11,10 +8,6 @@ inputs:
       if none is passed."
     required: false
     default: ${{ github.token }}
-  numReviewers:
-    description: "number of assignees from the list that will get assigned to this PR"
-    required: false
-    default: 1
 runs:
   using: "node16"
   main: "dist/index.js"
