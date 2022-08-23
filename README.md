@@ -14,4 +14,3 @@ jobs:
       with:
         numReviewers: 1
 ```
-will automatically assign the opener of a PR as the assignee, and randomly assign 1 reviewer from the CODEOWNERs list in `./github/CODEOWNERS`
