@@ -40,7 +40,17 @@ async function run(): Promise<void> {
 
         core.info(`Triggered by ${context.eventName}: ${event_type}`);
 
-        await assignment(param);
+        switch (event_type) {
+            case "opened": {
+                await assignment(param);
+                break;
+            }
+            default: {
+                const labels = await detect_labels(param);
+                await conditional_approve(param, labels);
+                break;
+            }
+        }
 
         const labels = await detect_labels(param);
 
