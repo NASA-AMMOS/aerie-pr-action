@@ -1,17 +1,26 @@
 # Aerie Pull Request Action
 
-A simple Github action to automatically assign assignees and reviewers to Pull Requests (PRs).
+A simple Github action to handle custom logic for PRs. Created to streamline workflows for the [aerie](https://github.com/NASA-AMMOS/aerie) development team.
+
+# Features
+- Assigns PR opener as assignee
+- Automatically give one approval to PRs with `documentation` or `hotfix` labels, to speed up merging velocity for small changes.
 
 # Usage
+Add the following to e.g. `./.github/workflows/aerie.yml`
 ```yaml
-name: "Handle PR Logic"
+name: "Aerie PR Logic"
 on:
-  pull_request
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - ready_for_review
+      - labeled
+      - unlabeled
 jobs:
   pr_logic:
   steps:
     - uses: nasa-ammos/aerie-pr-action@main
-      with:
-        numReviewers: 1
 ```
-will automatically assign the opener of a PR as the assignee, and randomly assign 1 reviewer from the CODEOWNERs list in `./github/CODEOWNERS`
+...and then open a PR!
