@@ -1,6 +1,8 @@
 name: "Aerie PR Magic"
 
 permissions:
+  contents: read
+  id-token: read
   issues: write
   pull-requests: write
 
