@@ -64,7 +64,17 @@ function run() {
             };
             const event_type = (_a = context.payload.action) !== null && _a !== void 0 ? _a : "NO EVENT TYPE";
             core.info(`Triggered by ${context.eventName}: ${event_type}`);
-            yield assignment(param);
+            switch (event_type) {
+                case "opened": {
+                    yield assignment(param);
+                    break;
+                }
+                default: {
+                    const labels = yield detect_labels(param);
+                    yield conditional_approve(param, labels);
+                    break;
+                }
+            }
             const labels = yield detect_labels(param);
             yield conditional_approve(param, labels);
         }
