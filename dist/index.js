@@ -62,21 +62,22 @@ function run() {
                 repo: context.repo.repo,
                 pull_number: pull_request.number
             };
+            // get event type of action trigger and act accordingly
             const event_type = (_a = context.payload.action) !== null && _a !== void 0 ? _a : "NO EVENT TYPE";
             core.info(`Triggered by ${context.eventName}: ${event_type}`);
             switch (event_type) {
+                // only run assignment if we opened a PR
                 case "opened": {
                     yield assignment(param);
                     break;
                 }
+                // otherwise, handle labels and approvals
                 default: {
                     const labels = yield detect_labels(param);
                     yield conditional_approve(param, labels);
                     break;
                 }
             }
-            const labels = yield detect_labels(param);
-            yield conditional_approve(param, labels);
         }
         catch (error) {
             if (error instanceof Error)
@@ -125,17 +126,28 @@ function detect_labels(param) {
 function conditional_approve(param, labels) {
     return __awaiter(this, void 0, void 0, function* () {
         const num_reviews_resp = yield gh.rest.pulls.listReviews(param);
+        // check if we already have enough approvals
+        // since there is no need to add another then
         const num_approvals = num_reviews_resp.data.reduce((acc, review) => (review.state === "APPROVED" ? acc + 1 : acc), 0);
         if (num_approvals >= 2) {
             core.info("Sufficient approvals detected, not approving...");
             return false;
         }
+        // get the list of applicable labels
         const labels_needing_approval = labels.filter((l) => l === "documentation" || l === "hotfix");
+        // and conditionally approve
         if (labels_needing_approval.length > 0) {
+            // check if the github-actions bot has already approved this PR
+            // to avoid duplicate approvals
+            const num_bot_approvals = num_reviews_resp.data.reduce((acc, review) => { var _a; return ((_a = review.user) === null || _a === void 0 ? void 0 : _a.login) === "github-actions" ? acc + 1 : acc; }, 0);
+            if (num_bot_approvals > 0) {
+                core.info("Detected an existing approval by myself (github-actions bot), not approving again...");
+                return false;
+            }
             core.info("Approving PR...");
             gh.rest.pulls.createReview(Object.assign(Object.assign({}, param), { event: "APPROVE", body: `Automatically approved due to detection of the following labels: ${labels_needing_approval}` }));
         }
-        return true;
+        return labels_needing_approval.length > 0;
     });
 }
 run();
