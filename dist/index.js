@@ -62,21 +62,22 @@ function run() {
                 repo: context.repo.repo,
                 pull_number: pull_request.number
             };
+            // get event type of action trigger and act accordingly
             const event_type = (_a = context.payload.action) !== null && _a !== void 0 ? _a : "NO EVENT TYPE";
             core.info(`Triggered by ${context.eventName}: ${event_type}`);
             switch (event_type) {
+                // only run assignment if we opened a PR
                 case "opened": {
                     yield assignment(param);
                     break;
                 }
+                // otherwise, handle labels and approvals
                 default: {
                     const labels = yield detect_labels(param);
                     yield conditional_approve(param, labels);
                     break;
                 }
             }
-            const labels = yield detect_labels(param);
-            yield conditional_approve(param, labels);
         }
         catch (error) {
             if (error instanceof Error)
@@ -138,7 +139,7 @@ function conditional_approve(param, labels) {
         if (labels_needing_approval.length > 0) {
             // check if the github-actions bot has already approved this PR
             // to avoid duplicate approvals
-            const num_bot_approvals = num_reviews_resp.data.reduce((acc, review) => { var _a; return (((_a = review.user) === null || _a === void 0 ? void 0 : _a.login) === "github-actions" ? acc + 1 : acc); }, 0);
+            const num_bot_approvals = num_reviews_resp.data.reduce((acc, review) => { var _a; return ((_a = review.user) === null || _a === void 0 ? void 0 : _a.login) === "github-actions" ? acc + 1 : acc; }, 0);
             if (num_bot_approvals > 0) {
                 core.info("Detected an existing approval by myself (github-actions bot), not approving again...");
                 return false;

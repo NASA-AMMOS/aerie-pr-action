@@ -36,25 +36,24 @@ async function run(): Promise<void> {
             pull_number: pull_request.number
         };
 
+        // get event type of action trigger and act accordingly
         const event_type = context.payload.action ?? "NO EVENT TYPE";
 
         core.info(`Triggered by ${context.eventName}: ${event_type}`);
 
         switch (event_type) {
+            // only run assignment if we opened a PR
             case "opened": {
                 await assignment(param);
                 break;
             }
+            // otherwise, handle labels and approvals
             default: {
                 const labels = await detect_labels(param);
                 await conditional_approve(param, labels);
                 break;
             }
         }
-
-        const labels = await detect_labels(param);
-
-        await conditional_approve(param, labels);
     } catch (error) {
         if (error instanceof Error) core.setFailed(error.message);
     }
