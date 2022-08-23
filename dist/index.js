@@ -41,14 +41,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
-const triggers = [
-    "labeled",
-    "unlabeled",
-    "synchronize",
-    "submitted",
-    "edited",
-    "dismissed"
-];
 let gh;
 function run() {
     var _a;
@@ -70,25 +62,11 @@ function run() {
                 repo: context.repo.repo,
                 pull_number: pull_request.number
             };
-            const event_type = (_a = context.payload.action) !== null && _a !== void 0 ? _a : "N/A";
-            // if this action was triggered by opening a PR
-            // then assign the opener as the assignee
-            if (!triggers.includes(event_type)) {
-                core.info(`Action triggered by ${context.eventName}: ${event_type}, attempting assignment...`);
-                yield assignment(param);
-                return;
-            }
-            // otherwise, we were triggered by a event that mutates labels and or approvals,
-            // so we need to recalculate
-            core.info(`Triggered by ${context.eventName}: ${event_type}, handling labels and approvals`);
+            const event_type = (_a = context.payload.action) !== null && _a !== void 0 ? _a : "NO EVENT TYPE";
+            core.info(`Triggered by ${context.eventName}: ${event_type}`);
+            yield assignment(param);
             const labels = yield detect_labels(param);
-            const sufficient = yield sufficient_approvals(param, labels);
-            if (!sufficient) {
-                throw new Error("Insufficient approvals, blocking merge...");
-            }
-            else {
-                core.info("Sufficient approvals, allowing merge...");
-            }
+            yield conditional_approve(param, labels);
         }
         catch (error) {
             if (error instanceof Error)
@@ -134,17 +112,20 @@ function detect_labels(param) {
         return labels;
     });
 }
-function sufficient_approvals(param, labels) {
+function conditional_approve(param, labels) {
     return __awaiter(this, void 0, void 0, function* () {
         const num_reviews_resp = yield gh.rest.pulls.listReviews(param);
-        const num_reviews = num_reviews_resp.data.reduce((acc, review) => (review.state === "APPROVED" ? acc + 1 : acc), 0);
-        const required_num_reviews = labels.includes("documentation") ? 1 : 2;
-        core.info(`Determined ${required_num_reviews} approvals are needed`);
-        const sufficient = num_reviews >= required_num_reviews;
-        if (!sufficient) {
-            core.error(`Need ${required_num_reviews} approvals, only have ${num_reviews}`);
+        const num_approvals = num_reviews_resp.data.reduce((acc, review) => (review.state === "APPROVED" ? acc + 1 : acc), 0);
+        if (num_approvals >= 2) {
+            core.info("Sufficient approvals detected, not approving...");
+            return false;
         }
-        return sufficient;
+        const labels_needing_approval = labels.filter((l) => l === "documentation" || l === "hotfix");
+        if (labels_needing_approval.length > 0) {
+            core.info("Approving PR...");
+            gh.rest.pulls.createReview(Object.assign(Object.assign({}, param), { event: "APPROVE", body: `Automatically approved due to detection of the following labels: ${labels_needing_approval}` }));
+        }
+        return true;
     });
 }
 run();

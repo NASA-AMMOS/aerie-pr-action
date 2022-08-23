@@ -8,15 +8,6 @@ type Param = {
     pull_number: number;
 };
 
-const triggers = [
-    "labeled",
-    "unlabeled",
-    "synchronize",
-    "submitted",
-    "edited",
-    "dismissed"
-];
-
 let gh: InstanceType<typeof GitHub>;
 
 async function run(): Promise<void> {
@@ -45,33 +36,15 @@ async function run(): Promise<void> {
             pull_number: pull_request.number
         };
 
-        const event_type = context.payload.action ?? "N/A";
+        const event_type = context.payload.action ?? "NO EVENT TYPE";
 
-        // if this action was triggered by opening a PR
-        // then assign the opener as the assignee
-        if (!triggers.includes(event_type)) {
-            core.info(
-                `Action triggered by ${context.eventName}: ${event_type}, attempting assignment...`
-            );
-            await assignment(param);
-            return;
-        }
+        core.info(`Triggered by ${context.eventName}: ${event_type}`);
 
-        // otherwise, we were triggered by a event that mutates labels and or approvals,
-        // so we need to recalculate
-        core.info(
-            `Triggered by ${context.eventName}: ${event_type}, handling labels and approvals`
-        );
+        await assignment(param);
 
         const labels = await detect_labels(param);
 
-        const sufficient = await sufficient_approvals(param, labels);
-
-        if (!sufficient) {
-            throw new Error("Insufficient approvals, blocking merge...");
-        } else {
-            core.info("Sufficient approvals, allowing merge...");
-        }
+        await conditional_approve(param, labels);
     } catch (error) {
         if (error instanceof Error) core.setFailed(error.message);
     }
@@ -122,28 +95,36 @@ async function detect_labels(param: Param): Promise<string[]> {
     return labels;
 }
 
-async function sufficient_approvals(
+async function conditional_approve(
     param: Param,
     labels: string[]
 ): Promise<boolean> {
     const num_reviews_resp = await gh.rest.pulls.listReviews(param);
 
-    const num_reviews = num_reviews_resp.data.reduce(
+    const num_approvals = num_reviews_resp.data.reduce(
         (acc, review) => (review.state === "APPROVED" ? acc + 1 : acc),
         0
     );
 
-    const required_num_reviews = labels.includes("documentation") ? 1 : 2;
-    core.info(`Determined ${required_num_reviews} approvals are needed`);
-
-    const sufficient = num_reviews >= required_num_reviews;
-    if (!sufficient) {
-        core.error(
-            `Need ${required_num_reviews} approvals, only have ${num_reviews}`
-        );
+    if (num_approvals >= 2) {
+        core.info("Sufficient approvals detected, not approving...");
+        return false;
     }
 
-    return sufficient;
+    const labels_needing_approval = labels.filter(
+        (l: string) => l === "documentation" || l === "hotfix"
+    );
+
+    if (labels_needing_approval.length > 0) {
+        core.info("Approving PR...");
+        gh.rest.pulls.createReview({
+            ...param,
+            event: "APPROVE",
+            body: `Automatically approved due to detection of the following labels: ${labels_needing_approval}`
+        });
+    }
+
+    return true;
 }
 
 run();

@@ -1,13 +1,14 @@
-name: "Sufficient Approvals"
+name: "Aerie PR Magic"
 on:
   pull_request:
     types:
+      - opened
+      - ready_for_review
       - labeled
       - unlabeled
-      - synchronize
 
 jobs:
-  sufficiency-check:
+  aerie-logic:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
