@@ -111,6 +111,8 @@ async function conditional_approve(
 ): Promise<boolean> {
     const num_reviews_resp = await gh.rest.pulls.listReviews(param);
 
+    // check if we already have enough approvals
+    // since there is no need to add another then
     const num_approvals = num_reviews_resp.data.reduce(
         (acc, review) => (review.state === "APPROVED" ? acc + 1 : acc),
         0
@@ -121,11 +123,27 @@ async function conditional_approve(
         return false;
     }
 
+    // get the list of applicable labels
     const labels_needing_approval = labels.filter(
         (l: string) => l === "documentation" || l === "hotfix"
     );
 
+    // and conditionally approve
     if (labels_needing_approval.length > 0) {
+        // check if the github-actions bot has already approved this PR
+        // to avoid duplicate approvals
+        const num_bot_approvals = num_reviews_resp.data.reduce(
+            (acc, review) =>
+                review.user?.login === "github-actions" ? acc + 1 : acc,
+            0
+        );
+        if (num_bot_approvals > 0) {
+            core.info(
+                "Detected an existing approval by myself (github-actions bot), not approving again..."
+            );
+            return false;
+        }
+
         core.info("Approving PR...");
         gh.rest.pulls.createReview({
             ...param,
@@ -134,7 +152,7 @@ async function conditional_approve(
         });
     }
 
-    return true;
+    return labels_needing_approval.length > 0;
 }
 
 run();
