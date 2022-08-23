@@ -1,7 +1,5 @@
 name: "Aerie PR Magic"
 
-permissions: write-all
-
 on:
   pull_request:
     types:
