@@ -1,6 +1,6 @@
-# Aerie Pull Request Action
+# PlanDev Pull Request Action
 
-A simple Github action to handle custom logic for PRs. Created to streamline workflows for the [aerie](https://github.com/NASA-AMMOS/aerie) development team.
+A simple Github action to handle custom logic for PRs. Created to streamline workflows for the [plandev](https://github.com/NASA-AMMOS/aerie) development team.
 
 # Features
 - Assigns PR opener as assignee
